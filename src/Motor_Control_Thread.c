@@ -90,22 +90,24 @@ MOTOR_CONTROL_THREAD_DATA motor_control_threadData;
 // *****************************************************************************
 
 /* Application's Timer Callback Function */
+// Timer Interrupt to read line sensor
 static void TimerCallback (  uintptr_t context, uint32_t alarmCount )
 {
-    int covered = 0x33;
+    // TODO: Disabled Line Sensor Reading
+    /*int covered = 0x33;
     int val = (uint16_t)(DRV_ADC_SamplesRead(0) - covered);
     //dbgOutputVal(val);
     DRV_ADC_Start();
-    /*Line_message new_mess;
-    new_mess.dark_level0 = val;
-    new_mess.dark_level1 = 0x1;
-    new_mess.dark_level2 = 0x2;
-    new_mess.dark_level3 = 0x3;
-    uint32_t ser_mess = serialize_MM(new_mess);*/
+    //Line_message new_mess;
+    //new_mess.dark_level0 = val;
+    //new_mess.dark_level1 = 0x1;
+    //new_mess.dark_level2 = 0x2;
+    //new_mess.dark_level3 = 0x3;
+    //uint32_t ser_mess = serialize_MM(new_mess);
     sendMotorVal(val);
     while(! sendToMotorMsgQ(val)) {
         dbgOutputLoc(0x07);
-    }
+    }*/
 }
 
 /* TODO:  Add any necessary callback functions.
@@ -203,16 +205,15 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
 
         case MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS:
         {
-            while(!receiveFromMotorMsgQ()){
+            // TODO: Disable reading from motor message ueue
+            /*while(!receiveFromMotorMsgQ()){
             //dbgOutputLoc(0x04);
             }
             uint8_t rec = receiveMotorVal();
-            dbgOutputVal(rec);
+            dbgOutputVal(rec);*/
+            dbgOutputVal(0x1);
+            dbgOutputVal(0x2);
 
-            /*int covered = 0x33;
-            int val = (uint16_t)(DRV_ADC_SamplesRead(0) - covered);
-            dbgOutputVal(val);
-            DRV_ADC_Start();*/
             break;
         }
 
