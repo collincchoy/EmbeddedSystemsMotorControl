@@ -211,8 +211,13 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
             }
             uint8_t rec = receiveMotorVal();
             dbgOutputVal(rec);*/
-            dbgOutputVal(0x1);
-            dbgOutputVal(0x2);
+            dbgOutputVal(0xFF);
+            dbgOutputLoc(0xFF);
+            
+            //PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_F, PORTS_BIT_POS_8, 0x1);
+            //PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_D, PORTS_BIT_POS_5, 0x0); // Dir2
+            PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_D, PORTS_BIT_POS_0, 0x01); // OC1/En1
+            PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_D, PORTS_BIT_POS_1, 0x01); // OC2/En2
 
             break;
         }
