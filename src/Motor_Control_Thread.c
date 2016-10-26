@@ -108,6 +108,12 @@ static void TimerCallback (  uintptr_t context, uint32_t alarmCount )
     while(! sendToMotorMsgQ(val)) {
         dbgOutputLoc(0x07);
     }*/
+    
+    if (motor_control_threadData.state == MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW)
+    {
+        PWM1_cntr++;
+    }
+
 }
 
 /* TODO:  Add any necessary callback functions.
@@ -197,7 +203,8 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
                 DRV_ADC_Open();
                 DRV_ADC_Start(); 
                 TimerSetup();
-            
+                
+                PWM1_cntr = 0;
                 motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS;
             }
             break;
@@ -211,14 +218,44 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
             }
             uint8_t rec = receiveMotorVal();
             dbgOutputVal(rec);*/
-            dbgOutputVal(0xFF);
-            dbgOutputLoc(0xFF);
-            
-            //PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_F, PORTS_BIT_POS_8, 0x1);
-            //PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_D, PORTS_BIT_POS_5, 0x0); // Dir2
-            PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_D, PORTS_BIT_POS_0, 0x01); // OC1/En1
-            PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_D, PORTS_BIT_POS_1, 0x01); // OC2/En2
+            //dbgOutputVal(0xFF);
 
+            stop();
+            break;
+        }
+        
+        case MOTOR_CONTROL_THREAD_STATE_DRIVE:
+        {
+            dbgOutputVal(0x04);
+            drive();
+            break;
+        }
+        
+        case MOTOR_CONTROL_THREAD_STATE_HANG_LEFT:
+        {
+            dbgOutputVal(0x05);
+            turnLeft();
+            break;
+        }
+        
+        case MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT:
+        {
+            dbgOutputVal(0x06);
+            turnRight();
+            break;
+        }
+        
+        case MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW:
+        {
+            dbgOutputVal(0x07);
+            drive_slow();
+            break;
+        }
+        
+        case MOTOR_CONTROL_THREAD_STATE_DRIVE_REVERSE:
+        {
+            dbgOutputVal(0x08);
+            reverse();
             break;
         }
 
@@ -232,6 +269,109 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
             break;
         }
     }
+    
+    /* Check Message Queue for Next-State Transitions */
+    
+    while (!receiveFromMotorMsgQ()) 
+    {}
+    uint8_t rec = receiveMotorVal();
+       
+    if (rec == 0x77) { // w
+        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
+    }
+    else if (rec == 0x73) { // s
+        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS;
+    }
+    else if (rec == 0x61) { // a
+        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_LEFT;
+    }
+    else if (rec == 0x64) { // d
+        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT;
+    }
+    else if (rec == 0x65) { // e
+        PWM1_cntr = 0;
+        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
+    }
+    else if (rec == 0x78) { // x
+        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_REVERSE;
+    }
+}
+
+/* -------------- Overwatch_Thread Message queue Helpers -------------- */
+void drive()
+{
+    MOTOR1_WRITE(0x1);
+    MOTOR2_WRITE(0x1);
+    
+    MOTOR1_DIR(0x0);
+    MOTOR2_DIR(0x0);
+}
+
+void stop()
+{
+    MOTOR1_WRITE(0x0);
+    MOTOR2_WRITE(0x0);
+}
+
+void turnLeft()
+{
+    MOTOR1_WRITE(0x1);
+    MOTOR2_WRITE(0x1);
+    
+    MOTOR1_DIR(0x0);
+    MOTOR2_DIR(0x1);
+}
+
+void turnRight()
+{ 
+    MOTOR1_WRITE(0x1);
+    MOTOR2_WRITE(0x1);
+    
+    MOTOR1_DIR(0x1);
+    MOTOR2_DIR(0x0);
+}
+
+void drive_slow()
+{
+    int TRANSITION_TIME = 10000;
+    if (PWM1_cntr < TRANSITION_TIME) {
+        drive();
+    }
+    else if (PWM1_cntr < (TRANSITION_TIME * 2)) {
+        stop();
+    }
+    else {
+        PWM1_cntr = 0;
+    }
+}
+
+void reverse()
+{
+    MOTOR1_WRITE(0x1);
+    MOTOR2_WRITE(0x1);
+    
+    MOTOR1_DIR(0x1);
+    MOTOR2_DIR(0x1);
+}
+
+void MOTOR1_WRITE(short rw)
+{
+    PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_D, PORTS_BIT_POS_0, rw); // OC1/En1
+}
+
+void MOTOR1_DIR(short dir)
+{
+    PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_C, PORTS_BIT_POS_14, dir); // Dir1
+}
+
+void MOTOR2_WRITE(short rw)
+{
+    PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_D, PORTS_BIT_POS_1, rw); // OC2/En2
+}
+
+void MOTOR2_DIR(short dir)
+{
+    PLIB_PORTS_PinWrite(PORTS_ID_0, PORT_CHANNEL_G, PORTS_BIT_POS_1, dir); // Dir2
 }
 
 /*******************************************************************************
