@@ -111,7 +111,9 @@ static void TimerCallback (  uintptr_t context, uint32_t alarmCount )
     
     if (motor_control_threadData.state == MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW)
     {
+        dbgOutputVal(PWM1_cntr);
         PWM1_cntr++;
+        drive_slow();
     }
 
 }
@@ -183,7 +185,7 @@ void MOTOR_CONTROL_THREAD_Initialize ( void )
 
 void MOTOR_CONTROL_THREAD_Tasks ( void )
 {
-
+    dbgOutputLoc(0x04);
     /* Check the application's current state. */
     switch ( motor_control_threadData.state )
     {
@@ -247,8 +249,8 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
         
         case MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW:
         {
-            dbgOutputVal(0x07);
-            drive_slow();
+            //dbgOutputVal(0x07);
+            //drive_slow();
             break;
         }
         
@@ -271,30 +273,32 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
     }
     
     /* Check Message Queue for Next-State Transitions */
-    
-    while (!receiveFromMotorMsgQ()) 
-    {}
-    uint8_t rec = receiveMotorVal();
-       
-    if (rec == 0x77) { // w
-        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
+    dbgOutputLoc(0x0E);
+    if (receiveFromMotorMsgQ()) {
+    //{}
+        uint8_t rec = receiveMotorVal();
+
+        if (rec == 0x77) { // w
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
+        }
+        else if (rec == 0x73) { // s
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS;
+        }
+        else if (rec == 0x61) { // a
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_LEFT;
+        }
+        else if (rec == 0x64) { // d
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT;
+        }
+        else if (rec == 0x65) { // e
+            PWM1_cntr = 0;
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
+        }
+        else if (rec == 0x78) { // x
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_REVERSE;
+        }
     }
-    else if (rec == 0x73) { // s
-        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS;
-    }
-    else if (rec == 0x61) { // a
-        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_LEFT;
-    }
-    else if (rec == 0x64) { // d
-        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT;
-    }
-    else if (rec == 0x65) { // e
-        PWM1_cntr = 0;
-        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
-    }
-    else if (rec == 0x78) { // x
-        motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_REVERSE;
-    }
+    dbgOutputLoc(0xEE);
 }
 
 /* -------------- Overwatch_Thread Message queue Helpers -------------- */
@@ -333,11 +337,18 @@ void turnRight()
 
 void drive_slow()
 {
-    int TRANSITION_TIME = 10000;
+    
+    int PWM_PERIOD = 100;
+    int PWM_DUTY_CYCLE = 25;
+    int TRANSITION_TIME = PWM_PERIOD * (PWM_DUTY_CYCLE/100.0);
+    
+    dbgOutputLoc(0x05);
     if (PWM1_cntr < TRANSITION_TIME) {
+        dbgOutputLoc(0x06);
         drive();
     }
-    else if (PWM1_cntr < (TRANSITION_TIME * 2)) {
+    else if (PWM1_cntr < (PWM_PERIOD)) {
+        dbgOutputLoc(0x07);
         stop();
     }
     else {
