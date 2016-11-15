@@ -89,20 +89,25 @@ void IntHandlerDrvAdc(void)
     dbgOutputVal(AdcVal2);
     dbgOutputLoc(AdcVal3);
     
+    char message;
+    
     if ((AdcVal2 > THRESH && AdcVal3 > THRESH) && (AdcVal1 < THRESH && AdcVal4 < THRESH)) {
         turnLED_On();
-        sendMotorVal('w'); // Go
+        message = 'w'; // Go
     }
     else if ( AdcVal1 > THRESH && AdcVal4 < THRESH ) {
-        sendMotorVal('d'); // Hang left to correct
+        message = 'd'; // Hang right to correct
     }
     else if ( AdcVal1 < THRESH && AdcVal4 > THRESH ) {
-        sendMotorVal('a');
+        message = 'a'; // Hang left to correct
     }
     else {
         turnLED_Off();
-        sendMotorVal('e');
-        //sendMotorVal('s');
+        message = 'e'; // Go slow otherwise until corrected into another state
+    }
+    
+    if (!motor_control_threadData.isInManual) {
+        sendMotorVal(message);
     }
     
     /* Clear ADC Interrupt Flag */

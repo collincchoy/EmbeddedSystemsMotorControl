@@ -123,6 +123,8 @@ typedef struct
 
     /* TODO: Define any additional data used by the application. */
     DRV_HANDLE handleTimer1;
+    
+    bool isInManual;
 
 } MOTOR_CONTROL_THREAD_DATA;
 
@@ -227,6 +229,7 @@ void MOTOR2_DIR(short dir);
 
 int PWM1_cntr;
 
+extern MOTOR_CONTROL_THREAD_DATA motor_control_threadData;
 
 #endif /* _MOTOR_CONTROL_THREAD_H */
 
