@@ -95,6 +95,8 @@ typedef enum
             MOTOR_CONTROL_THREAD_STATE_DRIVE,
             MOTOR_CONTROL_THREAD_STATE_HANG_LEFT,
             MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT,
+            MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW,
+            MOTOR_CONTROL_THREAD_STATE_DRIVE_REVERSE,
 
 	/* TODO: Define states used by the application state machine. */
 
@@ -210,10 +212,20 @@ void MOTOR_CONTROL_THREAD_Tasks( void );
 void drive();
 void stop();
 void turnLeft();
+void hangLeft();
 void turnRight();
+void hangRight();
+
+void drive_slow();
+void reverse();
 
 void MOTOR1_WRITE(short rw);
 void MOTOR2_WRITE(short rw);
+
+void MOTOR1_DIR(short dir);
+void MOTOR2_DIR(short dir);
+
+int PWM1_cntr;
 
 
 #endif /* _MOTOR_CONTROL_THREAD_H */
