@@ -93,40 +93,25 @@ MOTOR_CONTROL_THREAD_DATA motor_control_threadData;
 // Timer Interrupt to read line sensor
 static void TimerCallback (  uintptr_t context, uint32_t alarmCount )
 {
-    // TODO: Disabled Line Sensor Reading
-    /*int covered = 0x33;
-    int val = (uint16_t)(DRV_ADC_SamplesRead(0) - covered);
-    //dbgOutputVal(val);
-    DRV_ADC_Start();
-    //Line_message new_mess;
-    //new_mess.dark_level0 = val;
-    //new_mess.dark_level1 = 0x1;
-    //new_mess.dark_level2 = 0x2;
-    //new_mess.dark_level3 = 0x3;
-    //uint32_t ser_mess = serialize_MM(new_mess);
-    sendMotorVal(val);
-    while(! sendToMotorMsgQ(val)) {
-        dbgOutputLoc(0x07);
-    }*/
-    
     if (motor_control_threadData.state == MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW)
     {
         dbgOutputVal(PWM1_cntr);
         PWM1_cntr++;
         drive_slow();
     }
+    /*else if (motor_control_threadData.state == MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT)
+    {
+        PWM1_cntr++;
+        hangRight();
+    }*/
 
 }
-
-/* TODO:  Add any necessary callback functions.
-*/
 
 // *****************************************************************************
 // *****************************************************************************
 // Section: Application Local Functions
 // *****************************************************************************
 // *****************************************************************************
-
 
 /* Application's Timer Setup Function */
 static void TimerSetup( void )
@@ -139,10 +124,6 @@ static void TimerSetup( void )
         TimerCallback);
     DRV_TMR_Start(motor_control_threadData.handleTimer1);
 }
-
-/* TODO:  Add any necessary local functions.
-*/
-
 
 // *****************************************************************************
 // *****************************************************************************
@@ -236,21 +217,23 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
         case MOTOR_CONTROL_THREAD_STATE_HANG_LEFT:
         {
             dbgOutputVal(0x05);
-            turnLeft();
+            //turnLeft();
+            hangLeft();
             break;
         }
         
         case MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT:
         {
             dbgOutputVal(0x06);
-            turnRight();
+            //turnRight();
+            hangRight();
             break;
         }
         
         case MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW:
         {
             //dbgOutputVal(0x07);
-            //drive_slow();
+            drive_slow();
             break;
         }
         
@@ -278,24 +261,33 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
     //{}
         uint8_t rec = receiveMotorVal();
 
-        if (rec == 0x77) { // w
-            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
+        if (motor_control_threadData.state != MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS) {        
+            if (rec == 0x77) { // w
+                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
+            }
+            else if (rec == 0x73) { // s
+                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS;
+            }
+            else if (rec == 0x61) { // a
+                PWM1_cntr = 0;
+                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_LEFT;
+            }
+            else if (rec == 0x64) { // d
+                PWM1_cntr = 0;
+                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT;
+            }
+            else if (rec == 0x65) { // e
+                PWM1_cntr = 0;
+                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
+            }
+            else if (rec == 0x78) { // x
+                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_REVERSE;
+            }
         }
-        else if (rec == 0x73) { // s
-            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS;
-        }
-        else if (rec == 0x61) { // a
-            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_LEFT;
-        }
-        else if (rec == 0x64) { // d
-            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT;
-        }
-        else if (rec == 0x65) { // e
-            PWM1_cntr = 0;
-            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
-        }
-        else if (rec == 0x78) { // x
-            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_REVERSE;
+        else {
+            if (rec == 0x20) {
+                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
+            }
         }
     }
     dbgOutputLoc(0xEE);
@@ -307,8 +299,8 @@ void drive()
     MOTOR1_WRITE(0x1);
     MOTOR2_WRITE(0x1);
     
-    MOTOR1_DIR(0x0);
-    MOTOR2_DIR(0x0);
+    MOTOR1_DIR(0x1);
+    MOTOR2_DIR(0x1);
 }
 
 void stop()
@@ -326,6 +318,30 @@ void turnLeft()
     MOTOR2_DIR(0x1);
 }
 
+void hangLeft()
+{
+    /*int PWM_PERIOD = 100;
+    int PWM_DUTY_CYCLE = 25;
+    int TRANSITION_TIME = PWM_PERIOD * (PWM_DUTY_CYCLE/100.0);
+    
+    if (PWM1_cntr < TRANSITION_TIME) {      
+        // PWM signal to motor 1
+        MOTOR1_WRITE(0x1);
+        MOTOR1_DIR(0x1);
+    }
+    else if (PWM1_cntr < (PWM_PERIOD)) {
+        MOTOR1_WRITE(0x0);
+    }
+    else {
+        PWM1_cntr = 0;
+    }*/
+    
+    MOTOR1_WRITE(0x0);
+    
+    MOTOR2_WRITE(0x1);
+    MOTOR2_DIR(0x1);
+}
+
 void turnRight()
 { 
     MOTOR1_WRITE(0x1);
@@ -335,6 +351,30 @@ void turnRight()
     MOTOR2_DIR(0x0);
 }
 
+void hangRight()
+{
+    /*int PWM_PERIOD = 100;
+    int PWM_DUTY_CYCLE = 25;
+    int TRANSITION_TIME = PWM_PERIOD * (PWM_DUTY_CYCLE/100.0);
+    
+    if (PWM1_cntr < TRANSITION_TIME) {      
+        // PWM signal to motor 1
+        MOTOR2_WRITE(0x1);
+        MOTOR2_DIR(0x1);
+    }
+    else if (PWM1_cntr < (PWM_PERIOD)) {
+        MOTOR2_WRITE(0x0);
+    }
+    else {
+        PWM1_cntr = 0;
+    }*/
+    
+    MOTOR2_WRITE(0x0);
+    
+    MOTOR1_WRITE(0x1);
+    MOTOR1_DIR(0x1);
+}
+
 void drive_slow()
 {
     
@@ -342,13 +382,10 @@ void drive_slow()
     int PWM_DUTY_CYCLE = 25;
     int TRANSITION_TIME = PWM_PERIOD * (PWM_DUTY_CYCLE/100.0);
     
-    dbgOutputLoc(0x05);
     if (PWM1_cntr < TRANSITION_TIME) {
-        dbgOutputLoc(0x06);
         drive();
     }
     else if (PWM1_cntr < (PWM_PERIOD)) {
-        dbgOutputLoc(0x07);
         stop();
     }
     else {
@@ -361,8 +398,8 @@ void reverse()
     MOTOR1_WRITE(0x1);
     MOTOR2_WRITE(0x1);
     
-    MOTOR1_DIR(0x1);
-    MOTOR2_DIR(0x1);
+    MOTOR1_DIR(0x0);
+    MOTOR2_DIR(0x0);
 }
 
 void MOTOR1_WRITE(short rw)
