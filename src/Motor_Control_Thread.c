@@ -95,7 +95,6 @@ static void TimerCallback (  uintptr_t context, uint32_t alarmCount )
 {
     if (motor_control_threadData.state == MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW)
     {
-        dbgOutputVal(PWM1_cntr);
         PWM1_cntr++;
         drive_slow();
     }
@@ -168,7 +167,7 @@ void MOTOR_CONTROL_THREAD_Initialize ( void )
 
 void MOTOR_CONTROL_THREAD_Tasks ( void )
 {
-    dbgOutputLoc(0x04);
+    dbgOutputLoc(0x01);
     /* Check the application's current state. */
     switch ( motor_control_threadData.state )
     {
@@ -238,7 +237,7 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
         
         case MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW:
         {
-            //dbgOutputVal(0x07);
+            dbgOutputVal(0x07);
             drive_slow();
             break;
         }

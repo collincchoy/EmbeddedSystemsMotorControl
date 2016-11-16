@@ -80,14 +80,6 @@ void IntHandlerDrvAdc(void)
     uint16_t AdcVal4 = (uint16_t)DRV_ADC_SamplesRead(3); 
     
     uint16_t THRESH = 150;
-    /*if (AdcVal1 > THRESH || AdcVal2 > THRESH || AdcVal3 > THRESH || AdcVal4 > THRESH) {
-        turnLED_On();
-    }
-    else {
-        turnLED_Off();
-    }*/
-    dbgOutputVal(AdcVal2);
-    dbgOutputLoc(AdcVal3);
     
     char message;
     

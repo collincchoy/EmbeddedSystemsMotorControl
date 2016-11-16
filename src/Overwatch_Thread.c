@@ -159,8 +159,6 @@ void OVERWATCH_THREAD_Initialize ( void )
         initMotorMsgQ();
     }
     
-    
-    dbgOutputVal(0x0D);
 }
 
 /******************************************************************************
