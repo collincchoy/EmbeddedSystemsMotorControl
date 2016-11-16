@@ -98,7 +98,7 @@ void sendMotorVal(unsigned char message) {
   */
 int receiveFromMotorMsgQ() { 
     unsigned char message;
-    if (xQueuePeek(motor_messageQueue, &message, /*portMAX_DELAY*/( TickType_t ) 10) == pdTRUE)
+    if (xQueuePeek(motor_messageQueue, &message, /*portMAX_DELAY*/( TickType_t ) 5) == pdTRUE)
            return 1;
     
     return 0;
