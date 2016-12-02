@@ -74,18 +74,19 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // *****************************************************************************
 void IntHandlerDrvAdc(void)
 {
-    uint16_t AdcVal1 = (uint16_t)DRV_ADC_SamplesRead(0);            
+    uint16_t AdcVal1 = (uint16_t)DRV_ADC_SamplesRead(0);
     uint16_t AdcVal2 = (uint16_t)DRV_ADC_SamplesRead(1);
     uint16_t AdcVal3 = (uint16_t)DRV_ADC_SamplesRead(2);            
     uint16_t AdcVal4 = (uint16_t)DRV_ADC_SamplesRead(3); 
     
-    uint16_t THRESH = 150;
+    uint16_t THRESH = 140;
     
     char message;
     
     if ((AdcVal2 > THRESH && AdcVal3 > THRESH) && (AdcVal1 < THRESH && AdcVal4 < THRESH)) {
         turnLED_On();
-        message = 'w'; // Go
+        message = (motor_control_threadData.role == AUTO) ? 'w' : 
+            (motor_control_threadData.role == AUTO_SLOW) ? 'e' : '+'; // Go
     }
     else if ( AdcVal1 > THRESH && AdcVal4 < THRESH ) {
         message = 'd'; // Hang right to correct
@@ -95,10 +96,11 @@ void IntHandlerDrvAdc(void)
     }
     else {
         turnLED_Off();
-        message = 'e'; // Go slow otherwise until corrected into another state
+        message = (motor_control_threadData.role == AUTO) ? 'w' : 
+            (motor_control_threadData.role == AUTO_SLOW) ? 'e' : '+'; // Go slow otherwise until corrected into another state
     }
     
-    if (!motor_control_threadData.isInManual) {
+    if (!(motor_control_threadData.role == MANUAL)) {
         sendMotorVal(message);
     }
     

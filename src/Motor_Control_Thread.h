@@ -102,6 +102,13 @@ typedef enum
 
 } MOTOR_CONTROL_THREAD_STATES;
 
+typedef enum
+{
+    MANUAL=0,
+            AUTO,
+            AUTO_SLOW
+} MOTOR_CONTROL_THREAD_ROLES;
+
 
 // *****************************************************************************
 /* Application Data
@@ -124,7 +131,8 @@ typedef struct
     /* TODO: Define any additional data used by the application. */
     DRV_HANDLE handleTimer1;
     
-    bool isInManual;
+    //bool isInManual;
+    MOTOR_CONTROL_THREAD_ROLES role;
 
 } MOTOR_CONTROL_THREAD_DATA;
 

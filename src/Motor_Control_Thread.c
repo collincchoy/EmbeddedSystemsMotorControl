@@ -145,7 +145,8 @@ void MOTOR_CONTROL_THREAD_Initialize ( void )
 
     motor_control_threadData.handleTimer1 = DRV_HANDLE_INVALID;
     
-    motor_control_threadData.isInManual = true;
+    motor_control_threadData.role = MANUAL;
+    //motor_control_threadData.isInManual = true;
     
     /* TODO: Initialize your application's state machine and other
      * parameters.
@@ -218,7 +219,8 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
         case MOTOR_CONTROL_THREAD_STATE_HANG_LEFT:
         {
             dbgOutputVal(0x05);
-            if (motor_control_threadData.isInManual)
+            //if (motor_control_threadData.isInManual)
+            if (motor_control_threadData.role == MANUAL)
                 turnLeft();
             else
                 hangLeft();
@@ -228,7 +230,8 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
         case MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT:
         {
             dbgOutputVal(0x06);
-            if (motor_control_threadData.isInManual)
+            //if (motor_control_threadData.isInManual)
+            if (motor_control_threadData.role == MANUAL)
                 turnRight();
             else
                 hangRight();
@@ -271,8 +274,10 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
                 motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
             }
             else if (rec == 0x73) { // s
-                if (!motor_control_threadData.isInManual) {
-                    motor_control_threadData.isInManual = true;
+                //if (!motor_control_threadData.isInManual) {
+                if (!(motor_control_threadData.role == MANUAL)) {
+                    //motor_control_threadData.isInManual = true;
+                    motor_control_threadData.role = MANUAL;
                 }
                 motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS;
             }
@@ -292,8 +297,14 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
                 motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_REVERSE;
             }
             else if (rec == 0x20) {
-                motor_control_threadData.isInManual = false;
+                //motor_control_threadData.isInManual = false;
+                motor_control_threadData.role = AUTO;
                 motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
+            }
+            else if (rec == 0x66) {
+                //motor_control_threadData.isInManual = false;
+                motor_control_threadData.role = AUTO_SLOW;
+                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
             }
         /*}
         else {
@@ -392,7 +403,7 @@ void drive_slow()
 {
     
     int PWM_PERIOD = 100;
-    int PWM_DUTY_CYCLE = 25;
+    int PWM_DUTY_CYCLE = 15;
     int TRANSITION_TIME = PWM_PERIOD * (PWM_DUTY_CYCLE/100.0);
     
     if (PWM1_cntr < TRANSITION_TIME) {

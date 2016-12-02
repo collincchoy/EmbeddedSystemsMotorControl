@@ -53,6 +53,7 @@ extern "C" {
     int receiveFromMotorMsgQ();
     unsigned char receiveMotorVal();
     void initMotorMsgQ();
+    void clearMotorMsgQ();
 
     /* ************************************************************************** */
     /** Descriptive Constant Name

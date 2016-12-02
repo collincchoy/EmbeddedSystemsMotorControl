@@ -117,6 +117,10 @@ unsigned char receiveMotorVal() {
     void initMotorMsgQ() {
         motor_messageQueue = xQueueCreate(10, sizeof(unsigned char));
     }
+    
+    void clearMotorMsgQ() {
+        xQueueReset(motor_messageQueue);
+    }
 /* ************************************************************************** */
 
 /* *****************************************************************************
