@@ -98,10 +98,15 @@ static void TimerCallback (  uintptr_t context, uint32_t alarmCount )
         PWM1_cntr++;
         drive_slow();
     }
-    /*else if (motor_control_threadData.state == MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT)
+    /*else if (motor_control_threadData.state == MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT && motor_control_threadData.role != MANUAL)
     {
         PWM1_cntr++;
         hangRight();
+    }
+    else if (motor_control_threadData.state == MOTOR_CONTROL_THREAD_STATE_HANG_LEFT && motor_control_threadData.role != MANUAL)
+    {
+        PWM1_cntr++;
+        hangLeft();
     }*/
 
 }
@@ -146,7 +151,6 @@ void MOTOR_CONTROL_THREAD_Initialize ( void )
     motor_control_threadData.handleTimer1 = DRV_HANDLE_INVALID;
     
     motor_control_threadData.role = MANUAL;
-    //motor_control_threadData.isInManual = true;
     
     /* TODO: Initialize your application's state machine and other
      * parameters.
@@ -197,14 +201,6 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
 
         case MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS:
         {
-            // TODO: Disable reading from motor message ueue
-            /*while(!receiveFromMotorMsgQ()){
-            //dbgOutputLoc(0x04);
-            }
-            uint8_t rec = receiveMotorVal();
-            dbgOutputVal(rec);*/
-            //dbgOutputVal(0xFF);
-
             stop();
             break;
         }
@@ -219,7 +215,6 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
         case MOTOR_CONTROL_THREAD_STATE_HANG_LEFT:
         {
             dbgOutputVal(0x05);
-            //if (motor_control_threadData.isInManual)
             if (motor_control_threadData.role == MANUAL)
                 turnLeft();
             else
@@ -230,7 +225,6 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
         case MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT:
         {
             dbgOutputVal(0x06);
-            //if (motor_control_threadData.isInManual)
             if (motor_control_threadData.role == MANUAL)
                 turnRight();
             else
@@ -241,7 +235,7 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
         case MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW:
         {
             dbgOutputVal(0x07);
-            drive_slow();
+            //drive_slow(); happens in ISR
             break;
         }
         
@@ -269,50 +263,37 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
     //{}
         uint8_t rec = receiveMotorVal();
 
-        //if (motor_control_threadData.state != MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS) {        
-            if (rec == 0x77) { // w
-                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
+        if (rec == 0x77) { // w
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
+        }
+        else if (rec == 0x73) { // s
+            if (!(motor_control_threadData.role == MANUAL)) {
+                motor_control_threadData.role = MANUAL;
+                clearMotorMsgQ();
             }
-            else if (rec == 0x73) { // s
-                //if (!motor_control_threadData.isInManual) {
-                if (!(motor_control_threadData.role == MANUAL)) {
-                    //motor_control_threadData.isInManual = true;
-                    motor_control_threadData.role = MANUAL;
-                }
-                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS;
-            }
-            else if (rec == 0x61) { // a
-                PWM1_cntr = 0;
-                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_LEFT;
-            }
-            else if (rec == 0x64) { // d
-                PWM1_cntr = 0;
-                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT;
-            }
-            else if (rec == 0x65) { // e
-                PWM1_cntr = 0;
-                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
-            }
-            else if (rec == 0x78) { // x
-                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_REVERSE;
-            }
-            else if (rec == 0x20) {
-                //motor_control_threadData.isInManual = false;
-                motor_control_threadData.role = AUTO;
-                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
-            }
-            else if (rec == 0x66) {
-                //motor_control_threadData.isInManual = false;
-                motor_control_threadData.role = AUTO_SLOW;
-                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
-            }
-        /*}
-        else {
-            if (rec == 0x20) {
-                motor_control_threadData.isInManual = false;
-                motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
-            }
-        }*/
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_SERVICE_TASKS;
+        }
+        else if (rec == 0x61) { // a
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_LEFT;
+        }
+        else if (rec == 0x64) { // d
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_HANG_RIGHT;
+        }
+        else if (rec == 0x65) { // e
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
+        }
+        else if (rec == 0x78) { // x
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_REVERSE;
+        }
+        else if (rec == 0x20) {
+            motor_control_threadData.role = AUTO;
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
+        }
+        else if (rec == 0x66) {
+            //PWM1_cntr = 0;
+            motor_control_threadData.role = AUTO_SLOW;
+            motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
+        }
     }
     dbgOutputLoc(0xEE);
 }
@@ -345,7 +326,7 @@ void turnLeft()
 void hangLeft()
 {
     /*int PWM_PERIOD = 100;
-    int PWM_DUTY_CYCLE = 25;
+    int PWM_DUTY_CYCLE = 15;
     int TRANSITION_TIME = PWM_PERIOD * (PWM_DUTY_CYCLE/100.0);
     
     if (PWM1_cntr < TRANSITION_TIME) {      
@@ -378,7 +359,7 @@ void turnRight()
 void hangRight()
 {
     /*int PWM_PERIOD = 100;
-    int PWM_DUTY_CYCLE = 25;
+    int PWM_DUTY_CYCLE = 15;
     int TRANSITION_TIME = PWM_PERIOD * (PWM_DUTY_CYCLE/100.0);
     
     if (PWM1_cntr < TRANSITION_TIME) {      
