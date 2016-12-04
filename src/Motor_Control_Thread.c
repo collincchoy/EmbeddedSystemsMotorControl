@@ -82,6 +82,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 QueueHandle_t motor_messageQueue;
 MOTOR_CONTROL_THREAD_DATA motor_control_threadData;
+#define SLOW_SPEED 25
 
 // *****************************************************************************
 // *****************************************************************************
@@ -108,7 +109,6 @@ static void TimerCallback (  uintptr_t context, uint32_t alarmCount )
         PWM1_cntr++;
         hangLeft();
     }*/
-
 }
 
 // *****************************************************************************
@@ -290,7 +290,6 @@ void MOTOR_CONTROL_THREAD_Tasks ( void )
             motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE;
         }
         else if (rec == 0x66) {
-            //PWM1_cntr = 0;
             motor_control_threadData.role = AUTO_SLOW;
             motor_control_threadData.state = MOTOR_CONTROL_THREAD_STATE_DRIVE_SLOW;
         }
@@ -326,13 +325,13 @@ void turnLeft()
 void hangLeft()
 {
     /*int PWM_PERIOD = 100;
-    int PWM_DUTY_CYCLE = 15;
+    int PWM_DUTY_CYCLE = SLOW_SPEED;
     int TRANSITION_TIME = PWM_PERIOD * (PWM_DUTY_CYCLE/100.0);
     
     if (PWM1_cntr < TRANSITION_TIME) {      
         // PWM signal to motor 1
         MOTOR1_WRITE(0x1);
-        MOTOR1_DIR(0x1);
+        MOTOR1_DIR(0x0);
     }
     else if (PWM1_cntr < (PWM_PERIOD)) {
         MOTOR1_WRITE(0x0);
@@ -359,13 +358,13 @@ void turnRight()
 void hangRight()
 {
     /*int PWM_PERIOD = 100;
-    int PWM_DUTY_CYCLE = 15;
+    int PWM_DUTY_CYCLE = SLOW_SPEED;
     int TRANSITION_TIME = PWM_PERIOD * (PWM_DUTY_CYCLE/100.0);
     
     if (PWM1_cntr < TRANSITION_TIME) {      
         // PWM signal to motor 1
         MOTOR2_WRITE(0x1);
-        MOTOR2_DIR(0x1);
+        MOTOR2_DIR(0x0);
     }
     else if (PWM1_cntr < (PWM_PERIOD)) {
         MOTOR2_WRITE(0x0);
@@ -384,7 +383,7 @@ void drive_slow()
 {
     
     int PWM_PERIOD = 100;
-    int PWM_DUTY_CYCLE = 15;
+    int PWM_DUTY_CYCLE = SLOW_SPEED;
     int TRANSITION_TIME = PWM_PERIOD * (PWM_DUTY_CYCLE/100.0);
     
     if (PWM1_cntr < TRANSITION_TIME) {
